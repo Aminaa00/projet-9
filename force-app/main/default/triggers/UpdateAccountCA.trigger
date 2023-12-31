@@ -6,7 +6,7 @@ trigger UpdateAccountCA on Order (after update) {
         Order newOrder= trigger.new[i];
        
         Account acc = [SELECT Id, Chiffre_d_affaire__c FROM Account WHERE Id =:newOrder.AccountId ];
-        acc.Chiffre_d_affaire__c = acc.Chiffre_d_affaire__c + newOrder.TotalAmount;
+        //acc.Chiffre_d_affaire__c = acc.Chiffre_d_affaire__c + newOrder.TotalAmount;
         update acc;
     }
 }
