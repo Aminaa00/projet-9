@@ -2,59 +2,56 @@
 public class OrderTriggerHandlerTest {
     static testMethod void updateNetAmountTest() {
         OrderTriggerHandler ord = new OrderTriggerHandler ();
-            List<Order> orderListToUptdate = new List<Order> ();
-            Account acc = new Account (Name = 'AccountName');
-            insert acc;
-            Contract cont = new Contract(AccountId = acc.Id, Status = 'Draft', StartDate = Date.newInstance(2024, 3, 1), ContractTerm = 1);
-            insert cont;
+        Account acc = TestDataFactory.createAccount('TestAccount');
+        Contract cont = TestDataFactory.createContract(acc.Id, Date.newInstance(2024, 3, 1));
+        Product2 p = TestDataFactory.createProduct('TestProduct');
+        Pricebook2 pricebook = TestDataFactory.createPricebook('Example Price Book');
+        PricebookEntry standardPrice = TestDataFactory.createPricebookEntry(pricebook.Id, p.Id, 100);
+        List<Order> orderListToUpdate = new List<Order> ();
 
-            //Jeans,jogging...
-            Product2 p = new Product2();
-            p.Name = ' Test Product ';
-            p.Description='Test Product Entry For Product';
-            p.productCode = 'SFDCPanther-123';
-            p.isActive = true;
-            insert p;
+        Test.startTest();
+        Order order = TestDataFactory.createOrder(acc.Id, cont.Id, pricebook.Id, Date.newInstance(2024, 3, 1));
+        OrderItem lineItem = TestDataFactory.createOrderItem(order.Id, p.Id, standardPrice.Id);
+    
+        cont.status='Activated';
+        update cont;
+        order.status='Ordered';
+        update order;
 
-
-            Pricebook2 priceBook = new Pricebook2(
-            Name = 'Example Price Book',
-            Description = 'This is the Price Book description.',
-            IsActive = true );
-            insert priceBook;
-
-            PricebookEntry standardPrice = new PricebookEntry();
-            standardPrice.Pricebook2Id = Test.getStandardPricebookId();
-            standardPrice.Product2Id = p.Id;
-            standardPrice.UnitPrice = 100;
-            standardPrice.IsActive = true;
-            standardPrice.UseStandardPrice = false;
-            insert standardPrice ;
-
-
-            Test.startTest();
-            Order order = new Order(Name = 'Test', ShipmentCost__c = 7, AccountId = acc.Id, EffectiveDate = Date.newInstance(2024, 3, 1), ContractId = cont.Id, Status = 'Draft', PriceBook2Id = Test.getStandardPricebookId());
-            insert order;
-
-            //ORDER = ORDERITEM = commande / PRODUCT2=PRODUCT / PRICEBOOK / PRICEBOOKENTRY
-            // OrderItem (ci-dessous) = Order Product (sur SF)
-            // Lien entre produit & Order
-            OrderItem lineItem = new OrderItem();
-            lineItem.OrderId = order.id;
-            lineItem.Quantity = 24;
-            lineItem.UnitPrice = 240;
-            lineItem.Product2id = p.id;
-            lineItem.PricebookEntryId=standardPrice.id;
-            insert lineItem;
-
-
-            orderListToUptdate.add(order);
-            ord.updateNetAmount(orderListToUptdate);
-            Test.stopTest();
-            //Order orderItem = new Order(Name = 'Test', TotalAmount = 20, ShipmentCost__c = 7, AccountId = acc.Id, EffectiveDate = Date.newInstance(2024, 3, 1), ContractId = cont.Id, Status = 'Draft');
-
-            Order orderUpdated= [SELECT Id, NetAmount__c FROM Order WHERE Id =: order.id];
-            system.assertEquals(orderUpdated.NetAmount__c, ((lineItem.Quantity * lineItem.UnitPrice) - order.ShipmentCost__c), 'erreur');
-        //order.NetAmount__c = order.TotalAmount - order.ShipmentCost__c;
+        ord.updateNetAmount(orderListToUpdate);
+        Order orderInserted= [SELECT Id, NetAmount__c, TotalAmount, ShipmentCost__c FROM Order WHERE Id =: order.id];
+        OrderItem newOrderItem= [SELECT Id, Quantity, UnitPrice FROM OrderItem WHERE OrderId =: order.Id];
+        
+        Test.stopTest();
+        System.assertEquals(orderInserted.NetAmount__c, ((newOrderItem.Quantity * newOrderItem.UnitPrice) - orderInserted.ShipmentCost__c), 'erreur');
     }
+
+    
+    static testMethod void updateAccountTest() {
+        OrderTriggerHandler ord = new OrderTriggerHandler ();
+        Account acc = TestDataFactory.createAccount('TestAccount');
+        Contract cont = TestDataFactory.createContract(acc.Id, Date.newInstance(2024, 3, 1));
+        Product2 p = TestDataFactory.createProduct('TestProduct');
+        Pricebook2 pricebook = TestDataFactory.createPricebook('Example Price Book');
+        PricebookEntry standardPrice = TestDataFactory.createPricebookEntry(pricebook.Id, p.Id, 100);
+        List<order> oldListOrder = new List<order>();
+        List<order> newListOrder = new List<order>();
+
+        Test.startTest();
+        Order order = TestDataFactory.createOrder(acc.Id, cont.Id, pricebook.Id, Date.newInstance(2024, 3, 1));
+        oldListOrder.add(order);
+        OrderItem lineItem = TestDataFactory.createOrderItem(order.Id, p.Id, standardPrice.Id);
+        cont.status='Activated';
+        update cont;
+        order.Status='Ordered';
+        update order;
+        newListOrder.add(order);
+        Order orderInserted= [SELECT Id, NetAmount__c, TotalAmount, ShipmentCost__c FROM Order WHERE Id =: order.id];
+        List<Account> updatedAccounts = [SELECT Id, Chiffre_d_affaire__c FROM Account WHERE Id = :acc.Id];
+        ord.updateAccount(oldListOrder,newListOrder);
+        Test.stopTest();
+        
+        List<Account> updatedAccounts2 = [SELECT Id, Chiffre_d_affaire__c FROM Account WHERE Id = :acc.Id];
+        System.assertEquals(2400, updatedAccounts[0].Chiffre_d_affaire__c, 'Account Chiffre_d_affaire__c should be updated correctly');
+        }
 }

@@ -20,7 +20,7 @@ global class UpdateAccounts implements Database.Batchable<sObject>{
        }
        
        update scope;
-   }    
+   }
     
    global void finish(Database.BatchableContext info){     
        

@@ -1,11 +1,11 @@
 trigger OrderTrigger on Order (before update, after update) {
-	OrderTriggerHandler ord = new OrderTriggerHandler ();
-	if(Trigger.isBefore && Trigger.isUpdate) {
-		ord.updateNetAmount(Trigger.new);
+	OrderTriggerHandler orderTH = new OrderTriggerHandler();
+	
+	if(Trigger.isBefore ) {
+		orderTH.updateNetAmount(Trigger.New);		
 	}
 
-
-	if(Trigger.isAfter && Trigger.isUpdate) {
-		ord.updateAccount(Trigger.new);
+	if (Trigger.isAfter){
+		orderTH.updateAccount(Trigger.old, Trigger.New);
 	}
 }
